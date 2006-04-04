@@ -1,0 +1,13 @@
+#example for
+dbblobcache:
+  root: public
+  directory: files
+  table: items
+  blob: image
+  adapter: mysql
+  database: example_database
+  username: username
+  password: password
+  host: database_host
+  port: 3306
+

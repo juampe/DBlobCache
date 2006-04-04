@@ -10,7 +10,7 @@ class DBBlobCache
     #Script must be run at the rails path
     root="./"
     #The yalm enviroment in database.yml
-    env="filestore"
+    env="dbblobcache"
     config=YAML::load(ERB.new(File.open(root+"config/database.yml").read).result)
     @store_root=config[env]['root']
     @store_directory=config[env]['directory']
