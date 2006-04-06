@@ -88,8 +88,8 @@ class DBBlobCache
     dir.split('/').each {
       |mkdir|
       begin
-        Dir.chdir(mkdir)
         Dir.mkdir(mkdir) if not File.exist?(mkdir)
+	Dir.chdir(mkdir)
       rescue
       end
       puts Dir.pwd
