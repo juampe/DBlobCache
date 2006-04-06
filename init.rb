@@ -3,9 +3,7 @@
 # add the dbblobcache extensions to rails
 
 require 'dbblobcache'
-require 'file_column'
+#require 'file_column'
 
-#ActiveRecord::Base.send(:include, FileColumn)
-#ActionView::Base.send(:include, FileColumnHelper)
-#ActiveRecord::Base.send(:include, FileColumn::Validations)
+ActiveController::Base.send(:include, DBBlobCache)
 

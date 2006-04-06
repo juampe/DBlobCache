@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS `items` (
   `description` text NOT NULL,
   `extension` varchar(10) NOT NULL,
   `mime` varchar (50) NOT NULL,
-  `image` blob NOT NULL,
+  `image` longblob NOT NULL,
   
   PRIMARY KEY  (`id`),
 ) ENGINE=MyISAM DEFAULT CHARSET=UTF8;
