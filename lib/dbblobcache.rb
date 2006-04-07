@@ -29,7 +29,7 @@ class DBBlobCache
       @dbh.disconnect if @dbh
     end
     @@tags=tags
-    @@tags=:thumb => "150x150"
+    @@tags={:thumb => "image_scale:150x150+image_crop:100x100",:zip =>"compress_zip:3",:utf8 => "text_encode:utf8"}
   end
 	  
   def destructor
@@ -51,6 +51,28 @@ class DBBlobCache
   end
   
   def get_file(id,tag,extension,date)
+    for tag in @@tags[tag].split('+')
+      method=tag.split(':')
+      puts method[0]+"->"+method[1]
+      cached_file=cache_file(id,tag,extension,date)
+      cached_file_path=@rails_root+@store_root+@store_directory+cached_file
+      if method[0]==""
+        return cached_file
+      elsif method[0]=="image_scale"
+        if File.stat(cached_file_path).mtime<date
+	end
+        puts "scaling to "+method[1]
+      elsif method[0]=="image_crop"
+        puts "cropping to "+method[1]
+      elsif method[0]=="zip"
+        puts "compress level to "+method[1]
+      else
+        return cached_file
+      end
+    end
+end
+
+  
     return cache_file(id,tag,extension,date)
   end
   
@@ -60,7 +82,7 @@ class DBBlobCache
     filename=@store_root+@store_directory+build_hash_path(id.to_s+"."+extension)+id.to_s+tag+"."+extension
     begin
       #The cache logic
-      retrieve=(not File.exists?(filename)) or (File.stat(fullaname).mtime<date)
+      retrieve=(not File.exists?(filename)) or (File.stat(fillename).mtime<date)
     rescue
     end
     if retrieve
