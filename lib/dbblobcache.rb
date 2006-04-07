@@ -6,7 +6,7 @@ require "dbi"
 require 'drb'
 
 class DBBlobCache
-  def initialize
+  def initialize(tags)
     #Script must be run at the rails root oath
     @rails_root=__FILE__.sub!(/vendor\/plugins\/dbblobcache\/.*/,'')
     #@base=__FILE__.sub!(/lib\/.*/,'')
@@ -28,6 +28,8 @@ class DBBlobCache
         # disconnect from server
       @dbh.disconnect if @dbh
     end
+    @@tags=tags
+    @@tags=:thumb => "150x150"
   end
 	  
   def destructor
@@ -40,19 +42,28 @@ class DBBlobCache
   #extension ins the extension of the image due to mime
   #date is the date of last change in database
   def get_image(id,tag,extension,date)
-    return get_file(id,tag,extension,date)
+    (backend)=tag.split(':')
+    if @@tags.has_key(backend)?
+      return cache_file(id,tag,extension,date)
+    else
+      return /public/images/rails.png
+    end
   end
-
+  
   def get_file(id,tag,extension,date)
+    return cache_file(id,tag,extension,date)
+  end
+  
+  #id to databse table definede en database.yml
+  #tag is a label to
+  def cache_file(id,tag,extension,date)
     filename=@store_root+@store_directory+build_hash_path(id.to_s+"."+extension)+id.to_s+tag+"."+extension
-    puts filename
     begin
       #The cache logic
       retrieve=(not File.exists?(filename)) or (File.stat(fullaname).mtime<date)
     rescue
     end
     if retrieve
-    	#puts "cache miss "+id.to_s
         query="select "	+@store_blob+" from "+
 	    @store_table+" where id='"+id.to_s+"'"
 	begin
@@ -70,15 +81,16 @@ class DBBlobCache
 	  file.close
 	rescue
 	end
-    else
-      #puts "cache hit "+id.to_s
     end
     filename.sub!(/^public/,'')
     return filename
   end
   
-  def delete_file(id,tag,extension)
-    filename=@store_root+@store_directory+build_hash_path(id.to_s+tag+"."+extension)+id.to_s+tag+"."+extension
+  def delete_file(id,extension)
+    filepath=@store_root+@store_directory+build_hash_path(id.to_s+"."+extension)
+    Dir.foreach(filepath){
+      |file|
+      if file.match(#{id.to_s+tag+"."+extension})
     File.delete(filename)
   end
   
@@ -92,7 +104,6 @@ class DBBlobCache
 	Dir.chdir(mkdir)
       rescue
       end
-      puts Dir.pwd
     }
     Dir.chdir(@rails_root)
   end
