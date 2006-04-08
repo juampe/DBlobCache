@@ -21,18 +21,16 @@ class DBBlobCache
     begin
       #connect to the MySQL server
       connect_string="dbi:"+config[env]['adapter']+":"+config[env]['database']+":"+config[env]['host']+":"+config[env]['port'].to_s
-      @@dbh = DBI.connect(connect_string, config[env]['username'], config[env]['password'])
+      @dbh = DBI.connect(connect_string, config[env]['username'], config[env]['password'])
     rescue DBI::DatabaseError => e
       puts "Error  #{e.err} #{e.errstr}"
-    ensure
-        # disconnect from server
-      @dbh.disconnect if @dbh
     end
     #Set default tags
     @tags={
-      :thumb => "image_scale:150x150",
+      :thumb => "image_scale:64x64",
+      :medium => "image_scale:150x150",
       :medium => "image_scale:500x500",
-      :zip =>"compress_zip:3",
+      :zip => "compress_zip:3",
       :utf8 => "text_encode:utf8"
     }
   end
@@ -55,32 +53,35 @@ class DBBlobCache
   end
   
   def get_file(id,tag,extension,date)
-    cached_file=cache_file(id,tag,extension,date)
-    if tag==""
-      puts "get_file "+cached_file[:filename].sub(/^public/,'')
+    cached_file=self.cache_file(id,tag,extension,date)
+    if tag.nil? or tag==''
       return cached_file[:filename].sub(/^public/,'')
     end
-    for tag in @tags[tag].split('+')
-      method=tag.split(':')
-      puts method[0]+"->"+method[1]
+    for process in @tags[tag.to_sym].split('+')
+      method=process.split(':')
       begin
-        create=(not File.exists?(cached_file[:filename])) or (File.stat(cached_file[:filename]).mtime<date)
+        puts "create"
+        create=(not File.exists?(cached_file[:tagged_filename])) or (File.stat(cached_file[:tagged_filename]).mtime<date)
       rescue
       end
       if create
         if method[0]=="image_scale"
-          if File.stat(cached_file[:tagged_filename]).mtime<date
-            puts "scaling to "+method[1]
-          end
+          puts "scaling to "+method[1]
+	  begin
+	    file=File.open(cached_file[:tagged_filename],"w")
+	    file.write(File.open(cached_file[:filename]).read)
+	    file.close
+	  rescue
+	  end
         elsif method[0]=="image_crop"
           puts "cropping to "+method[1]
         elsif method[0]=="zip"
           puts "compress level to "+method[1]
-        else
-          return cached_file[:tagged_filename].sub(/^public/,'')
         end
       end
     end
+    puts cached_file[:tagged_filename].sub(/^public/,'')
+    return cached_file[:tagged_filename].sub(/^public/,'')
   end
 
   
@@ -89,22 +90,26 @@ class DBBlobCache
   def cache_file(id,tag,extension,date)
     hash=build_hash_path(id.to_s+"."+extension)
     filename=@store_root+@store_directory+hash+id.to_s+"."+extension
-    tagged_filename=@store_root+@store_directory+hash+id.to_s+tag+"."+extension
+    tagged_filename=@store_root+@store_directory+hash+id.to_s+"-"+tag+"."+extension
     begin
       #The cache logic
       retrieve=(not File.exists?(filename)) or (File.stat(fillename).mtime<date)
     rescue
     end
     if retrieve
-      query="select "	+@store_blob+" from "+
+      puts "retrieve"
+      query="select "+@store_blob+" from "+
          @store_table+" where id='"+id.to_s+"'"
       begin
-        sth=@@dbh.prepare(query)
+        puts "blob   eeeeeeees"
+        sth=@dbh.prepare(query)
+	puts "blob       dssssssssss"
         sth.execute
         row=sth.fetch
         blob=row.by_field(@store_blob)
+	puts "blob"
       rescue DBI::DatabaseError => e
-         puts "Error #{e.err} #{e.errstr}"
+        puts "Error #{e.err} #{e.errstr}"
       end
 	#puts "caching "+blob.size.to_s
       begin
@@ -114,7 +119,6 @@ class DBBlobCache
       rescue
       end
     end
-    filename.sub!(/^public/,'')
     return {:filename => filename , :tagged_filename => tagged_filename}
   end
   

@@ -5,5 +5,5 @@
 require 'dbblobcache'
 #require 'file_column'
 
-ActiveController::Base.send(:include, DBBlobCache)
+#ActiveController::Base.send(:include, DBBlobCache)
 
