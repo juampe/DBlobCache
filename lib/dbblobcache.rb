@@ -97,17 +97,13 @@ class DBBlobCache
     rescue
     end
     if retrieve
-      puts "retrieve"
       query="select "+@store_blob+" from "+
          @store_table+" where id='"+id.to_s+"'"
       begin
-        puts "blob   eeeeeeees"
         sth=@dbh.prepare(query)
-	puts "blob       dssssssssss"
         sth.execute
         row=sth.fetch
         blob=row.by_field(@store_blob)
-	puts "blob"
       rescue DBI::DatabaseError => e
         puts "Error #{e.err} #{e.errstr}"
       end
@@ -123,11 +119,12 @@ class DBBlobCache
   end
   
   def delete_file(id,extension)
-    filepath=@store_root+@store_directory+build_hash_path(id.to_s+"."+extension)
-    for file in Dir.entries(filepath)
-#      if file.match(#{id.to_s+tag+"."+extension})
-#        File.delete(filename)
-#       end
+    puts "delete "+id+extension
+    path=@store_root+@store_directory+build_hash_path(id.to_s+"."+extension)
+    for file in Dir.entries(path)
+#      if file.match(id.to_s+/[\.-]/)
+#        File.delete(file)
+#      end
     end
   end
   
