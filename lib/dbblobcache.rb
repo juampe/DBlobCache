@@ -2,8 +2,9 @@
 require 'erb'
 require 'yaml'
 require 'digest/md5'
-require "dbi"
+require 'dbi'
 require 'drb'
+#require 'rmagick'
 
 class DBBlobCache
   def initialize
@@ -53,8 +54,9 @@ class DBBlobCache
   end
   
   def get_file(id,tag,extension,date)
-    cached_file=self.cache_file(id,tag,extension,date)
+    cached_file=cache_file(id,tag,extension,date)
     if tag.nil? or tag==''
+      puts cached_file[:filename].sub(/^public/,'')
       return cached_file[:filename].sub(/^public/,'')
     end
     for process in @tags[tag.to_sym].split('+')
@@ -68,9 +70,10 @@ class DBBlobCache
         if method[0]=="image_scale"
           puts "scaling to "+method[1]
 	  begin
-	    file=File.open(cached_file[:tagged_filename],"w")
-	    file.write(File.open(cached_file[:filename]).read)
-	    file.close
+	    size=method[1].split("x")
+	    image=Image.new(cached_file[:filename])
+	    image.resize(size[0],size[1])
+	    image.write(cached_file[:tagged_filename])
 	  rescue
 	  end
         elsif method[0]=="image_crop"
@@ -97,8 +100,8 @@ class DBBlobCache
     rescue
     end
     if retrieve
-      query="select "+@store_blob+" from "+
-         @store_table+" where id='"+id.to_s+"'"
+      query="select `"+@store_blob+"` from `"+
+         @store_table+"` where id='"+id.to_s+"'"
       begin
         sth=@dbh.prepare(query)
         sth.execute
