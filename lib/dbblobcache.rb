@@ -122,12 +122,12 @@ class DBBlobCache
   end
   
   def delete_file(id,extension)
-    puts "delete "+id+extension
     path=@store_root+@store_directory+build_hash_path(id.to_s+"."+extension)
     for file in Dir.entries(path)
-#      if file.match(id.to_s+/[\.-]/)
-#        File.delete(file)
-#      end
+      if file =~ /#{id}[\.-]/
+        puts "deleted "+path+file
+        File.delete(path+file)
+      end
     end
   end
   
