@@ -28,7 +28,7 @@ class DBBlobCache
     end
     #Set default tags
     @tags={
-      :thumb => "image_scale:64x64",
+      :thumb => "image_thumbnail:150",
       :medium => "image_scale:150x150",
       :hudge => "image_scale:500x500",
       :zip => "compress_zip:3",
@@ -70,7 +70,6 @@ class DBBlobCache
         end
       end
     end
-    puts "get file ->"+file+"->"+file.sub(/^#{@store_root}/,'/')
     return file.sub(/^#{@store_root}/,'/')
   end
 
@@ -122,12 +121,17 @@ class DBBlobCache
   #Process file cached
   def process_file(input,output,process)
     method=process.split(':')
-    if method[0]=="image_scale" and method[1] =~ /\d+x\d+/
-      puts "scaling to "+method[1]
+    if method[0]=="image_thumbnail" and method[1] =~ /\d/
+      image_thumbnail(input,output,method[1].to_i)
+      file=output
+    elsif method[0]=="image_scale" and method[1] =~ /\d+x\d+/
       size=method[1].split("x")
       image_resize(input,output,size[0].to_i,size[1].to_i)
       file=output
-    elsif method[0]=="image_crop" and method[1] =~ /\d+x\d+/
+   elsif method[0]=="image_scale" and method[1] =~ /\d/
+      image_resize(input,output,method[1].to_i)
+      file=output
+   elsif method[0]=="image_crop" and method[1] =~ /\d+x\d+/
       puts "cropping to "+method[1]
     elsif method[0]=="zip" and method[1] =~ /\d/
       puts "compress level to "+method[1]
@@ -135,6 +139,15 @@ class DBBlobCache
       file=input
     end
     return file
+  end
+ 
+  def image_thumbnail(input,output,x)
+    img=Magick::ImageList.new(input)
+    Magick::ImageList.new(input).resize(x,(img.rows*x)/img.columns).write(output)
+  end
+  def image_resize(input,output,ratio)
+    img=Magick::ImageList.new(input)
+    img.resize(img.columns*ratio,img.rows*ratio).write(output)
   end
 
   def image_resize(input,output,x,y)
