@@ -4,7 +4,7 @@ require 'yaml'
 require 'digest/md5'
 require 'dbi'
 require 'drb'
-#require 'rmagick'
+require 'RMagick'
 
 class DBBlobCache
   def initialize
@@ -12,7 +12,7 @@ class DBBlobCache
     #Script must be run at the rails root path
     @rails_root=__FILE__.sub!(/vendor\/plugins\/dbblobcache\/.*/,'')
     Dir.chdir(@rails_root)
-    #The yalm enviroment in database.yml
+    #The yalm environment in database.yml
     env="dbblobcache"
     config=YAML::load(ERB.new(File.open(@rails_root+"config/database.yml").read).result)
     @store_root=config[env]['root']
@@ -30,7 +30,7 @@ class DBBlobCache
     @tags={
       :thumb => "image_scale:64x64",
       :medium => "image_scale:150x150",
-      :medium => "image_scale:500x500",
+      :hudge => "image_scale:500x500",
       :zip => "compress_zip:3",
       :utf8 => "text_encode:utf8"
     }
@@ -56,35 +56,22 @@ class DBBlobCache
   def get_file(id,tag,extension,date)
     cached_file=cache_file(id,tag,extension,date)
     if tag.nil? or tag==''
-      puts cached_file[:filename].sub(/^public/,'')
-      return cached_file[:filename].sub(/^public/,'')
-    end
-    for process in @tags[tag.to_sym].split('+')
-      method=process.split(':')
-      begin
-        puts "create"
-        create=(not File.exists?(cached_file[:tagged_filename])) or (File.stat(cached_file[:tagged_filename]).mtime<date)
-      rescue
-      end
-      if create
-        if method[0]=="image_scale"
-          puts "scaling to "+method[1]
-	  begin
-	    size=method[1].split("x")
-	    image=Image.new(cached_file[:filename])
-	    image.resize(size[0],size[1])
-	    image.write(cached_file[:tagged_filename])
-	  rescue
-	  end
-        elsif method[0]=="image_crop"
-          puts "cropping to "+method[1]
-        elsif method[0]=="zip"
-          puts "compress level to "+method[1]
+      file=cached_file[:filename]
+    else
+      for process in @tags[tag.to_sym].split('+')
+        begin
+          create=(not File.exists?(cached_file[:tagged_filename])) or (File.stat(cached_file[:tagged_filename]).mtime<date)
+        rescue
+        end
+        if create 
+          file=process_file(cached_file[:filename],cached_file[:tagged_filename],process)
+	else
+	  file=cached_file[:tagged_filename]
         end
       end
     end
-    puts cached_file[:tagged_filename].sub(/^public/,'')
-    return cached_file[:tagged_filename].sub(/^public/,'')
+    puts "get file ->"+file+"->"+file.sub(/^#{@store_root}/,'/')
+    return file.sub(/^#{@store_root}/,'/')
   end
 
   
@@ -132,6 +119,28 @@ class DBBlobCache
   end
   
   private
+  #Process file cached
+  def process_file(input,output,process)
+    method=process.split(':')
+    if method[0]=="image_scale" and method[1] =~ /\d+x\d+/
+      puts "scaling to "+method[1]
+      size=method[1].split("x")
+      image_resize(input,output,size[0].to_i,size[1].to_i)
+      file=output
+    elsif method[0]=="image_crop" and method[1] =~ /\d+x\d+/
+      puts "cropping to "+method[1]
+    elsif method[0]=="zip" and method[1] =~ /\d/
+      puts "compress level to "+method[1]
+    else
+      file=input
+    end
+    return file
+  end
+
+  def image_resize(input,output,x,y)
+    Magick::ImageList.new(input).resize(x,y).write(output)
+  end
+
   def full_mkdir(dir)
     Dir.chdir(@rails_root+@store_root)
     for mkdir  in dir.split('/')
