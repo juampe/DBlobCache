@@ -1,5 +1,6 @@
 <%=
 for item in @items
   tag("img", :src=> @dbblobcache.get_image(item.id,"",item.extension,item.fecha), :border=>0) 
+  tag("img", :src=> @dbblobcache.get_image(item.id,"tmub",item.extension,item.fecha), :border=>0) 
 end 
 %>

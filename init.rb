@@ -2,8 +2,7 @@
 # this file will be picked up by rails automatically and
 # add the dbblobcache extensions to rails
 
-require 'dbblobcache'
-#require 'file_column'
+require 'localdbblobcache'
 
-#ActiveController::Base.send(:include, DBBlobCache)
+ActiveRecord::Base.send(:include, LocalDBBlobCache)
 

@@ -1,9 +1,17 @@
 #example for
+development:
+  adapter: mysql
+  database: example_development
+  username: username
+  password: password
+  host: database_host
+  port: 3306
+
 dbblobcache:
-  root: public
-  directory: files
-  table: items
-  blob: image
+  root: public/
+  directory: files/
+  table: blobs
+  blob: blob
   adapter: mysql
   database: example_database
   username: username
