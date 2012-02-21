@@ -1,0 +1,111 @@
+DBlobCache
+
+     Scale the file storage for your rails application.
+    No more rsync betwen SCGI/FCGI servers to replicate data.
+    Use ActiveRecord to store all your data, incuded blobs. Avoid DB bottlenecks!
+    Store all data in your database in order to make backup easy
+    Data is replicated and stored on-demand
+    Can be used with Apache,lighttpd or XCGI (CGI,FCGI,SCGI,Mongrel)
+    High cache hit rate!
+
+What?
+
+Yes, you hear well, store files in database.
+
+DBBlobCache Is a DRb (Distributed Ruby) server that cache database blobs in filesystem, aiming to lighttpd/Apache quickly serve static files. 
+
+Instead of generate ActiveRecord dinamic content at high cost database performance, DBBlobCache only retrieve data from database the first time is used and when it's updated.
+How it works.
+
+Desing
+
+https://sites.google.com/site/juanpedroparedes/dbblobcache
+https://sites.google.com/site/juanpedroparedes/drbcachedbstore.png
+ 
+
+    First lighttpd got a request like /store/list
+    It forward the request to XCGI servers cause generates a 404 and dispatch.fcgi takes care of it
+    XCGI receives the request as controller store, list method
+    ActiveRecord fetch data and use helper(DRB method) to create image URL's
+    Helper retrieve file if not stored yet or was updated
+    Helper store the file into a directory to be serve later by web server
+    XCGI return HTML page
+    Next requests, will be to fetch static files from directory used.
+    As expected, there are initial cache miss, and later a high percentage of cache hits.
+
+How to install.
+
+    SVN 
+
+#svn co svn://iquis.com/dbblobcache/trunk/ dbblobcache
+
+To make svn external to our rails app
+
+#cd /path_to_rails_root/ 
+
+#svn propedit vendor/plugins
+
+add:
+
+dbblobcache svn://iquis.com/dbblobcache/trunk/ 
+
+    Read examples/databse.yml and add entry to  RAILS_ROOT/config/database.yml, this is the configuration file. 
+
+#database.yml entry
+dbblobcache:
+  root: public
+  directory: files
+  table: items
+  blob: image
+  adapter: mysql
+  database: example_database
+  username: username
+  password: password
+  host: database_host
+  port: 3306
+
+    Read  examples/example_controller and modify your controller adding a initialize method like this:
+
+#The controller must to start client binding to drb server (now localhost)
+  def initialize
+    DRb.start_service
+    @dbblobcache = DRbObject.new(nil, "druby://:8880")
+    #@dbblobcache = DRbObject.new(nil, "druby://lithty:8880")
+  end
+
+    Read examples/example_list.rhtml and see how to use @dbblobcache like a image helper
+
+ tag("img", :src=> @dbblobcache.get_image(item.id,"",item.extension,item.date), :border=>0)
+
+    Read examples/example.sql and examples/example_model.rb to see how to store date and blob stuff
+    Start in you rails root 
+
+#./vendor/plugins/dbblobcache/dbblobcache
+
+    Try your application
+
+Questions and little answers
+
+    Are you crazy? store files in database!
+
+Files are for filesystem and data is for database, i get the better of two.
+
+    How stable is the code?
+
+Is completely alpha code, please try it, and help to inprove it. 
+
+    Can I put DBBlobCache in XCGI servers as a rails plugin? 
+
+In future the answer maybe yes, like file_column but taking care of database
+
+    Why not to improve file_column?
+
+Is a great idea, but at the time, is a must to check and bench this approach.
+
+     Why not make a plugin?
+
+Well first i must read plugin doc :P
+	 
+
+Contact: GTalk GMail at juanpedro.paredes AT gmail.com
+
